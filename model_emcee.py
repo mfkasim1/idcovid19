@@ -5,7 +5,8 @@ from scipy.stats import poisson, binom, multivariate_normal
 from scipy.special import logsumexp
 import matplotlib.pyplot as plt
 
-def model(ndays,
+def model(ndays0,
+          offset_days, # day offset to the left
           n0, # the initial number of patients at day-0
           r0, # infectious rate
           confirmed_prob, # the proportion of infected people that is confirmed
@@ -22,6 +23,7 @@ def model(ndays,
           days_to_deceased_std
           ):
     # output: logprob of the data given the parameters
+    ndays = ndays0 + int(offset_days)
 
     n0 = int(n0)
     nprev = n0
@@ -72,7 +74,7 @@ def model(ndays,
     cum_recovereds = np.cumsum(nrecovereds)
     cum_deceaseds = np.cumsum(ndeceaseds)
 
-    return np.asarray(nconfirmeds), np.asarray(nrecovereds), np.asarray(ndeceaseds)
+    return np.asarray(nconfirmeds[-ndays0:]), np.asarray(nrecovereds[-ndays0:]), np.asarray(ndeceaseds[-ndays0:])
 
 def map_forward(i, arr, ntot, day_dist):
     if ntot == 0: return arr
@@ -141,6 +143,7 @@ ndays = len(data)
 # parameters for the model
 # (initval, lbound, ubound)
 params = np.array([
+    [5.0000000 , 0.0, 10.0], # offset_days: offset days to the back
     [10.0000000 , 2.0, 100.0], # n0: the initial number of patient at day 0
     [2.43010937 , 1.0, 2.5], # r0: the infection rate
     [0.8955862 , 0.0, 1.0], # confirmed_prob1: the proportion of infected people that is confirmed
@@ -157,7 +160,8 @@ params = np.array([
     [3.64004245 , 1.0, 10.0], # days_to_deceased_std
 ])
 # better fit
-pp0 = np.array([float(p) for p in "0.29217944 0.67795164 0.79906322 0.67856468 0.71719437 0.7642102 0.02945949 0.49632317 0.96598904 0.77983773 0.7475279  0.36430109".split()]) # -128
+pp0 = np.array([float(p) for p in """0.0 0.39487316 0.48078534 0.84274779 0.89724724 0.57197012 0.80188228
+ 0.21142343 0.6033941  0.99233592 0.48549393 0.54471405 0.25049241""".split()]) # -125.9
 params[:,0] = pp0 * (params[:,2]-params[:,1]) + params[:,1]
 # pp0 = np.array([2., 1.58677579,  0.95209077,  0.56049289,  2.54274016,  6.80718115**.5,
 #         1.39511485,  5.53546927**.5, 10.07925279,  6.08758741**.5,  6.2961364 ,
