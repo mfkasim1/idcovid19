@@ -144,21 +144,21 @@ ndays = len(data)
 # parameters for the model
 # (initval, lbound, ubound)
 params = np.array([
-    [5.0000000 , 0.0, 10.0], # offset_days: offset days to the back
-    [10.0000000 , 2.0, 100.0], # n0: the initial number of patient at day 0
-    [2.43010937 , 1.0, 2.5], # r0: the infection rate
-    [0.8955862 , 0.0, 1.0], # confirmed_prob1: the proportion of infected people that is confirmed
-    [0.32255113 , 0.0, 1.0], # recovery_rate
+    [1.134e+00, 0.0, 10.0], # offset_days: offset days to the back
+    [4.071e+01, 2.0, 100.0], # n0: the initial number of patient at day 0
+    [1.707e+00, 1.0, 2.5], # r0: the infection rate
+    [8.807e-01, 0.0, 1.0], # confirmed_prob1: the proportion of infected people that is confirmed
+    [8.881e-01, 0.0, 1.0], # recovery_rate
 
     # day-related variables
-    [1.52957385 , 1.0, 14.0], # infectious_delay_mean: incubation period, where the patient is not infectious
-    [1.97515711 , 1.0, 10.0], # infectious_delay_std
-    [1.468378 , 1.0, 10.0], # confirmed_delay_mean: how many days since infected is confirmed (if it will be)
-    [6.08453398 , 1.0, 10.0], # confirmed_delay_std
-    [13.54482505, 1.0, 20.0], # days_to_recover_mean: how many days since infected to be recovered (if will be confirmed)
-    [2.14816375 , 1.0, 10.0], # days_to_recover_std
-    [6.07907008, 1.0, 10.0], # days_to_deceased_mean: how many days since infected to be deceased (if will be confirmed)
-    [3.64004245 , 1.0, 10.0], # days_to_deceased_std
+    [8.761e+00, 1.0, 14.0], # infectious_delay_mean: incubation period, where the patient is not infectious
+    [8.602e+00, 1.0, 10.0], # infectious_delay_std
+    [2.903e+00, 1.0, 10.0], # confirmed_delay_mean: how many days since infected is confirmed (if it will be)
+    [6.604e+00, 1.0, 10.0], # confirmed_delay_std
+    [1.885e+01, 1.0, 20.0], # days_to_recover_mean: how many days since infected to be recovered (if will be confirmed)
+    [5.142e+00, 1.0, 10.0], # days_to_recover_std
+    [5.678e+00, 1.0, 10.0], # days_to_deceased_mean: how many days since infected to be deceased (if will be confirmed)
+    [2.990e+00, 1.0, 10.0], # days_to_deceased_std
 ])
 # better fit
 pp0 = np.array([float(p) for p in """0.0 0.39487316 0.48078534 0.84274779 0.89724724 0.57197012 0.80188228
