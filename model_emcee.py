@@ -28,10 +28,10 @@ def model(ndays0,
     n0 = int(n0)
     nprev = n0
     ninfecteds = [n0] # the number of infected people at day-i
-    ninfectious = [0 for _ in range(ndays)] # the number of people that becomes infectious at day-i
-    nconfirmeds = [0 for _ in range(ndays)] # the number of patients newly confirmed at day-i
-    nrecovereds = [0 for _ in range(ndays)] # the number of confirmed patients recovered at day-i
-    ndeceaseds = [0 for _ in range(ndays)] # the number of confirmed patients deceased at day-i
+    ninfectious = np.asarray([0 for _ in range(ndays)]) # the number of people that becomes infectious at day-i
+    nconfirmeds = np.asarray([0 for _ in range(ndays)]) # the number of patients newly confirmed at day-i
+    nrecovereds = np.asarray([0 for _ in range(ndays)]) # the number of confirmed patients recovered at day-i
+    ndeceaseds  = np.asarray([0 for _ in range(ndays)]) # the number of confirmed patients deceased at day-i
 
     # the delay distribution
     inf_delay = multivariate_normal(infectious_delay_mean, infectious_delay_std**2)
@@ -78,12 +78,12 @@ def model(ndays0,
 
 def map_forward(i, arr, ntot, day_dist):
     if ntot == 0: return arr
-    day_idxs = i + np.maximum(day_dist.rvs(size=ntot), 1)
+    day_idxs = i + np.maximum(day_dist.rvs(size=ntot), 1).astype(int)
     if ntot == 1:
-        day_idxs = [day_idxs]
-    for day_idx in day_idxs:
-        if day_idx < len(arr):
-            arr[int(day_idx)] += 1
+        day_idxs = np.asarray([day_idxs])
+    day_idxs = day_idxs[day_idxs < len(arr)]
+    if len(day_idxs) > 0:
+        np.add.at(arr, day_idxs, 1)
     return arr
 
 # wrapper of the model for emcee
@@ -127,6 +127,7 @@ def logprob_model(x, lb, ub, obs_data, ndays, nrepeat=1000, plot=False):
             plt.fill_between(x, mean_simdata[i,:]-np.diag(covs[i])**.5, mean_simdata[i,:]+np.diag(covs[i])**.5, alpha=0.3)
             plt.plot(x, simdata[:,i,:].T, 'C%d-'%i, alpha=0.01)
             plt.plot(x, obs_data[i,:], 'C%do'%i)
+            # plt.gca().set_yscale("log")
         plt.show()
     return logprob
 
@@ -200,6 +201,8 @@ elif mode == "mcmc":
     backend = emcee.backends.HDFBackend(filename)
     backend.reset(nwalkers, ndim)
     xseed0 = x0 + np.random.randn(nwalkers, ndim) * 0.1
+    xseed0[xseed0 < 0] = -xseed0[xseed0 < 0]
+    xseed0[xseed0 > 1] = 2-xseed0[xseed0 > 1]
     with Pool() as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, logprob_model,
                                         args=[lb, ub, obs_data, ndays, nrepeat],
