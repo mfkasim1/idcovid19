@@ -131,80 +131,81 @@ def logprob_model(x, lb, ub, obs_data, ndays, nrepeat=1000, plot=False):
         plt.show()
     return logprob
 
-# load the data
-data = np.loadtxt("data/data.csv", skiprows=20, delimiter=",", usecols=(1,2,3,4,5,6,7))
-new_conf = data[:,1]
-new_rec = data[:,2]
-new_dec = data[:,3]
-cum_conf = data[:,4]
-cum_rec = data[:,5]
-cum_dec = data[:,6]
-ndays = len(data)
+if __name__ == "__main__":
+    # load the data
+    data = np.loadtxt("data/data.csv", skiprows=20, delimiter=",", usecols=(1,2,3,4,5,6,7))
+    new_conf = data[:,1]
+    new_rec = data[:,2]
+    new_dec = data[:,3]
+    cum_conf = data[:,4]
+    cum_rec = data[:,5]
+    cum_dec = data[:,6]
+    ndays = len(data)
 
-# parameters for the model
-# (initval, lbound, ubound)
-params = np.array([
-    [1.134e+00, 0.0, 10.0], # offset_days: offset days to the back
-    [4.071e+01, 2.0, 100.0], # n0: the initial number of patient at day 0
-    [1.707e+00, 1.0, 2.5], # r0: the infection rate
-    [8.807e-01, 0.0, 1.0], # confirmed_prob1: the proportion of infected people that is confirmed
-    [8.881e-01, 0.0, 1.0], # recovery_rate
+    # parameters for the model
+    # (initval, lbound, ubound)
+    params = np.array([
+        [1.134e+00, 0.0, 10.0], # offset_days: offset days to the back
+        [4.071e+01, 2.0, 100.0], # n0: the initial number of patient at day 0
+        [1.707e+00, 1.0, 2.5], # r0: the infection rate
+        [8.807e-01, 0.0, 1.0], # confirmed_prob1: the proportion of infected people that is confirmed
+        [8.881e-01, 0.0, 1.0], # recovery_rate
 
-    # day-related variables
-    [8.761e+00, 1.0, 14.0], # infectious_delay_mean: incubation period, where the patient is not infectious
-    [8.602e+00, 1.0, 10.0], # infectious_delay_std
-    [2.903e+00, 1.0, 10.0], # confirmed_delay_mean: how many days since infected is confirmed (if it will be)
-    [6.604e+00, 1.0, 10.0], # confirmed_delay_std
-    [1.885e+01, 1.0, 20.0], # days_to_recover_mean: how many days since infected to be recovered (if will be confirmed)
-    [5.142e+00, 1.0, 10.0], # days_to_recover_std
-    [5.678e+00, 1.0, 10.0], # days_to_deceased_mean: how many days since infected to be deceased (if will be confirmed)
-    [2.990e+00, 1.0, 10.0], # days_to_deceased_std
-])
-# better fit
-pp0 = np.array([float(p) for p in """0.0 0.39487316 0.48078534 0.84274779 0.89724724 0.57197012 0.80188228
- 0.21142343 0.6033941  0.99233592 0.48549393 0.54471405 0.25049241""".split()]) # -125.9
-params[:,0] = pp0 * (params[:,2]-params[:,1]) + params[:,1]
-# pp0 = np.array([2., 1.58677579,  0.95209077,  0.56049289,  2.54274016,  6.80718115**.5,
-#         1.39511485,  5.53546927**.5, 10.07925279,  6.08758741**.5,  6.2961364 ,
-#         2.40890077**.5])
-# params[:,0] = pp0
-print(params[:,0])
+        # day-related variables
+        [8.761e+00, 1.0, 14.0], # infectious_delay_mean: incubation period, where the patient is not infectious
+        [8.602e+00, 1.0, 10.0], # infectious_delay_std
+        [2.903e+00, 1.0, 10.0], # confirmed_delay_mean: how many days since infected is confirmed (if it will be)
+        [6.604e+00, 1.0, 10.0], # confirmed_delay_std
+        [1.885e+01, 1.0, 20.0], # days_to_recover_mean: how many days since infected to be recovered (if will be confirmed)
+        [5.142e+00, 1.0, 10.0], # days_to_recover_std
+        [5.678e+00, 1.0, 10.0], # days_to_deceased_mean: how many days since infected to be deceased (if will be confirmed)
+        [2.990e+00, 1.0, 10.0], # days_to_deceased_std
+    ])
+    # better fit
+    pp0 = np.array([0.0,0.39487316,0.48078534,0.84274779,0.89724724,0.57197012,0.80188228,0.21142343,0.6033941,
+                    0.99233592,0.48549393,0.54471405,0.25049241])
+    params[:,0] = pp0 * (params[:,2]-params[:,1]) + params[:,1]
+    # pp0 = np.array([2., 1.58677579,  0.95209077,  0.56049289,  2.54274016,  6.80718115**.5,
+    #         1.39511485,  5.53546927**.5, 10.07925279,  6.08758741**.5,  6.2961364 ,
+    #         2.40890077**.5])
+    # params[:,0] = pp0
+    print(params[:,0])
 
-# combine the arguments
-p0 = params[:,0]
-lb = params[:,1]
-ub = params[:,2]
-x0 = (p0 - lb) / (ub - lb)
-obs_data = (new_conf, new_rec, new_dec)
+    # combine the arguments
+    p0 = params[:,0]
+    lb = params[:,1]
+    ub = params[:,2]
+    x0 = (p0 - lb) / (ub - lb)
+    obs_data = (new_conf, new_rec, new_dec)
 
-ndim = p0.shape[0]
-nwalkers = ndim * 3
-nrepeat = 2000
-mode = "see"
+    ndim = p0.shape[0]
+    nwalkers = ndim * 3
+    nrepeat = 2000
+    mode = "see"
 
-if mode == "see":
-    logprob = logprob_model(x0, lb, ub, obs_data, ndays, nrepeat=nrepeat//3, plot=True)
-    print(logprob)
-elif mode == "opt":
-    import cma
+    if mode == "see":
+        logprob = logprob_model(x0, lb, ub, obs_data, ndays, nrepeat=nrepeat//3, plot=True)
+        print(logprob)
+    elif mode == "opt":
+        import cma
 
-    cma_options = cma.CMAOptions()
-    cma_options.set("popsize", 16)
-    es = cma.CMAEvolutionStrategy(x0*0+0.5, 0.3, cma_options)
-    es.optimize(lambda x: -logprob_model(x, lb, ub, obs_data, ndays, nrepeat=nrepeat))
-    es.result_pretty()
+        cma_options = cma.CMAOptions()
+        cma_options.set("popsize", 16)
+        es = cma.CMAEvolutionStrategy(x0*0+0.5, 0.3, cma_options)
+        es.optimize(lambda x: -logprob_model(x, lb, ub, obs_data, ndays, nrepeat=nrepeat))
+        es.result_pretty()
 
-elif mode == "mcmc":
-    import emcee
+    elif mode == "mcmc":
+        import emcee
 
-    filename = "emcee_samples.h5"
-    backend = emcee.backends.HDFBackend(filename)
-    backend.reset(nwalkers, ndim)
-    xseed0 = x0 + np.random.randn(nwalkers, ndim) * 0.1
-    xseed0[xseed0 < 0] = -xseed0[xseed0 < 0]
-    xseed0[xseed0 > 1] = 2-xseed0[xseed0 > 1]
-    with Pool() as pool:
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, logprob_model,
-                                        args=[lb, ub, obs_data, ndays, nrepeat],
-                                        backend=backend, pool=pool)
-        sampler.run_mcmc(xseed0, 10000, progress=True)
+        filename = "emcee_samples.h5"
+        backend = emcee.backends.HDFBackend(filename)
+        backend.reset(nwalkers, ndim)
+        xseed0 = x0 + np.random.randn(nwalkers, ndim) * 0.1
+        xseed0[xseed0 < 0] = -xseed0[xseed0 < 0]
+        xseed0[xseed0 > 1] = 2-xseed0[xseed0 > 1]
+        with Pool() as pool:
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, logprob_model,
+                                            args=[lb, ub, obs_data, ndays, nrepeat],
+                                            backend=backend, pool=pool)
+            sampler.run_mcmc(xseed0, 10000, progress=True)
