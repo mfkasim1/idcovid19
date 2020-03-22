@@ -21,6 +21,13 @@ class Model:
             "t_dec": Uniform(0.1, 30.0),
             "t_rec": Uniform(0.1, 30.0),
         }
+        self.vecnames = {
+            "exposed": 0,
+            "infectious_dec": 1,
+            "infectious_rec": 2,
+            "dec": 3,
+            "rec": 4,
+        }
         self.obsnames = ["t_rec_total", "gradient", "dec_by_rec", "dec_by_infection"]
         self.paramnames = list(self.prior.keys())
 
@@ -58,15 +65,17 @@ class Model:
 
     ###################### observation specification ######################
     def get_simobservable(self, params):
-        t_incub, inf_rate, surv_rate, t_dec, t_rec = self.unpack(params)
+        t_incub = params["t_incub"]
+        t_rec = params["t_rec"]
         jac = self.construct_jac(params) # (nparams, nparams)
         eigvals, eigvecs = eig.apply(jac)
         max_eigvecs = eigvecs[:,-1] * torch.sign(eigvecs[-1,-1])
 
         # calculate the observable
-        gradient = eigvals[-1]
-        dec_by_rec = max_eigvecs[-2] / max_eigvecs[-1]
-        dec_by_infection = max_eigvecs[-2] / (max_eigvecs[1] + max_eigvecs[2])
+        gradient = eigvals[-1] # the largest eigenvalue
+        dec_by_rec = max_eigvecs[self.vecnames["dec"]] / max_eigvecs[self.vecnames["rec"]]
+        dec_by_infection = max_eigvecs[self.vecnames["infectious_dec"]] / \
+            (max_eigvecs[self.vecnames["infectious_rec"]] + max_eigvecs[self.vecnames["infectious_dec"]])
         return (t_incub+t_rec, gradient, dec_by_rec, dec_by_infection)
 
     def get_observable(self, fdata, day_offset):
