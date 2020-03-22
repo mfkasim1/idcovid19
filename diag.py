@@ -31,6 +31,7 @@ flatchain = flatchain[:flatchain.shape[0]//2,:] # (nsamples, nfeat)
 flatchain = flatchain * (bounds[:,1] - bounds[:,0]) + bounds[:,0]
 
 # print the summary
+print("Data collected: %d" % flatchain.shape[0])
 for i in range(len(paramnames)):
     print("%25s: (median) %.3e (std) %.3e" % (paramnames[i], np.median(flatchain[:,i]), np.std(flatchain[:,i])))
 
