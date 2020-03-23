@@ -310,10 +310,10 @@ class Model_B(Model):
         self.nobs = len(self.obsnames)
 
     def get_simobservable(self, *args, **kwargs):
-        return super(Model_A, self).get_simobservable(*args, **kwargs)[::2]
+        return super(Model_B, self).get_simobservable(*args, **kwargs)[::2]
 
     def get_observable(self, *args, **kwargs):
-        return super(Model_A, self).get_observable(*args, **kwargs)[::2]
+        return super(Model_B, self).get_observable(*args, **kwargs)[::2]
 
 if __name__ == "__main__":
     import argparse
