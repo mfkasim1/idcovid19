@@ -204,15 +204,15 @@ class Model:
 class Model2(Model):
     def __init__(self, fdata="data/data.csv", day_offset=33):
         self.prior = {
-            "r_incub"        : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_incub"        : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
             "inf_rate_unconf": Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
             "inf_rate_conf"  : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "surv_rate"      : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "r_conf"         : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "r_dec_conf"     : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "r_rec_conf"     : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "r_dec_unconf"   : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "r_rec_unconf"   : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "surv_rate"      : Uniform(torch.tensor(0.5 , dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_conf"         : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_dec_conf"     : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_rec_conf"     : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_dec_unconf"   : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_rec_unconf"   : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
         }
         self.param_display = {
             "r_incub"        : (lambda t: 1./t, "t_incub"),
