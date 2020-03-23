@@ -243,6 +243,10 @@ class Model2(Model):
         # load the data
         self.obs = self.get_observable(fdata, day_offset)
 
+    def r0(self, p):
+        # p is a dictionary
+        return (p["surv_rate"] / p["r_rec_conf"] + (1-p["surv_rate"]) / p["r_dec_conf"]) * p["inf_rate_conf"] # ???
+
     ###################### model specification ######################
     def construct_jac(self, params):
         r_incub, \
@@ -317,6 +321,21 @@ class Model_B(Model):
     def get_observable(self, *args, **kwargs):
         return super(Model_B, self).get_observable(*args, **kwargs)[::2]
 
+class Model_C(Model):
+    """
+    Model 1 without fitting the exponential gradient
+    """
+    def __init__(self, *args, **kwargs):
+        super(Model_C, self).__init__(*args, **kwargs)
+        self.obsnames = self.obsnames[1:]
+        self.nobs = len(self.obsnames)
+
+    def get_simobservable(self, *args, **kwargs):
+        return super(Model_C, self).get_simobservable(*args, **kwargs)[1:]
+
+    def get_observable(self, *args, **kwargs):
+        return super(Model_C, self).get_observable(*args, **kwargs)[1:]
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -360,6 +379,7 @@ if __name__ == "__main__":
         filters_dict = {
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
             "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
+            "r0_24": lambda s: model.r0(s) - 2 < 2,
         }
     elif args.model == "modela":
         model = Model_A(day_offset=day_offset)
@@ -372,6 +392,15 @@ if __name__ == "__main__":
     elif args.model == "modelb":
         model = Model_B(day_offset=day_offset)
         samples_fname = "pyro_samples_modelB%s.pkl"%suffix
+        filters_dict = {
+            "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
+            "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
+            "r0_24": lambda s: model.r0(s) - 2 < 2,
+            "slow_recovery": lambda s: s["r_rec"] < 1./7.,
+        }
+    elif args.model == "modelc":
+        model = Model_C(day_offset=day_offset)
+        samples_fname = "pyro_samples_modelC%s.pkl"%suffix
         filters_dict = {
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
             "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
