@@ -300,6 +300,20 @@ class Model_A(Model):
     def get_observable(self, *args, **kwargs):
         return super(Model_A, self).get_observable(*args, **kwargs)[:2]
 
+class Model_B(Model):
+    """
+    Model 1 without the dec/rec data
+    """
+    def __init__(self, *args, **kwargs):
+        super(Model_B, self).__init__(*args, **kwargs)
+        self.obsnames = self.obsnames[::2]
+        self.nobs = len(self.obsnames)
+
+    def get_simobservable(self, *args, **kwargs):
+        return super(Model_A, self).get_simobservable(*args, **kwargs)[::2]
+
+    def get_observable(self, *args, **kwargs):
+        return super(Model_A, self).get_observable(*args, **kwargs)[::2]
 
 if __name__ == "__main__":
     import argparse
@@ -347,6 +361,14 @@ if __name__ == "__main__":
     elif args.model == "modela":
         model = Model_A(day_offset=day_offset)
         samples_fname = "pyro_samples_modelA%s.pkl"%suffix
+        filters_dict = {
+            "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
+            "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
+            "r0_24": lambda s: model.r0(s) - 2 < 2,
+        }
+    elif args.model == "modelb":
+        model = Model_B(day_offset=day_offset)
+        samples_fname = "pyro_samples_modelB%s.pkl"%suffix
         filters_dict = {
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
             "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
