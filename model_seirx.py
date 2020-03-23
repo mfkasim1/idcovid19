@@ -184,18 +184,20 @@ class Model:
             plt.subplot(nrows, ncols, i+1)
             plt.hist(samples_disp)
             plt.title(dispname)
-            print("%25s: (median) %.3e, (1sigma) %.3e" % \
+            print("%15s: (median) %.3e, (1sigma+) %.3e, (1sigma-) %.3e" % \
                  (dispname, np.median(samples_disp),
-                  np.percentile(samples_disp, 86.1)-np.percentile(samples_disp, 15.9)))
+                  np.percentile(samples_disp, 86.1)-np.median(samples_disp),
+                  np.median(samples_disp)-np.percentile(samples_disp, 15.9)))
 
         # plot R0
         plt.subplot(nrows, ncols, nkeys+1)
         samples_disp = np.asarray(self.r0(samples))
         plt.hist(samples_disp)
         plt.title("R0")
-        print("%25s: (median) %.3e, (1sigma) %.3e" % \
+        print("%15s: (median) %.3e, (1sigma+) %.3e, (1sigma-) %.3e" % \
              ("R0", np.median(samples_disp),
-              np.percentile(samples_disp, 86.1)-np.percentile(samples_disp, 15.9)))
+              np.percentile(samples_disp, 86.1)-np.median(samples_disp),
+              np.median(samples_disp)-np.percentile(samples_disp, 15.9)))
 
         plt.show()
 
@@ -374,6 +376,7 @@ if __name__ == "__main__":
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
             "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
             "r0_24": lambda s: model.r0(s) - 2 < 2,
+            "slow_recovery": lambda s: s["r_rec"] < 1./7.,
         }
 
 
