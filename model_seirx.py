@@ -16,11 +16,18 @@ class Model:
         # vectors: exposed, infectious-dec, infectious-rec, dec, rec
 
         self.prior = {
-            "t_incub":   Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "r_incub":   Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
             "inf_rate":  Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
             "surv_rate": Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "t_dec":     Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
-            "t_rec":     Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "r_dec":     Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_rec":     Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+        }
+        self.param_display = {
+            "r_incub": (lambda t: 1./t, "t_incub"),
+            "inf_rate": (lambda t: t, "inf_rate"),
+            "surv_rate": (lambda t: t, "surv_rate"),
+            "r_dec": (lambda t: 1./t, "t_dec"),
+            "r_rec": (lambda t: 1./t, "t_rec"),
         }
         self.vecnames = {
             "exposed": 0,
@@ -40,19 +47,19 @@ class Model:
 
     ###################### model specification ######################
     def construct_jac(self, params):
-        t_incub, inf_rate, surv_rate, t_dec, t_rec = self.unpack(params)
+        r_incub, inf_rate, surv_rate, r_dec, r_rec = self.unpack(params)
 
         nparams = self.nparams
         K_rate = torch.zeros(nparams, nparams).to(dtype)
-        K_rate[0,0] = -1./t_incub
+        K_rate[0,0] = -r_incub
         K_rate[0,1] = inf_rate
         K_rate[0,2] = inf_rate
-        K_rate[1,0] = (1-surv_rate)/t_incub
-        K_rate[1,1] = -1./t_dec
-        K_rate[2,0] = surv_rate/t_incub
-        K_rate[2,2] = -1./t_rec
-        K_rate[3,1] = 1./t_dec
-        K_rate[4,2] = 1./t_rec
+        K_rate[1,0] = (1-surv_rate)*r_incub
+        K_rate[1,1] = -r_dec
+        K_rate[2,0] = surv_rate*r_incub
+        K_rate[2,2] = -r_rec
+        K_rate[3,1] = r_dec
+        K_rate[4,2] = r_rec
 
         # K_rate = np.asarray([
         #     [-1./t_incub, inf_rate, inf_rate, 0.0, 0.0], # dn(exposed)/dt
@@ -112,14 +119,19 @@ class Model:
     def unpack(self, params):
         return [params[paramname] for paramname in self.paramnames]
 
-    def inference(self): # a pytorch operation
+    def inference(self, params=None): # a pytorch operation
         # get the parameters
-        params = self.prior_params()
+        if params is None:
+            params = self.prior_params()
         simobs = self.get_simobservable(params)
         obs = self.obs # (nobs, 2)
 
+        logp = 0.0
         for i in range(self.nobs):
-            pyro.sample(self.obsnames[i], Normal(simobs[i], obs[i][1]), obs=obs[i][0])
+            dist = Normal(simobs[i], obs[i][1])
+            pyro.sample(self.obsnames[i], dist, obs=obs[i][0])
+            logp = logp + dist.log_prob(obs[i][0])
+        return logp
 
     ###################### postprocess ######################
     def sample_observations(self, samples):
@@ -162,9 +174,10 @@ class Model:
         nrows = int(np.sqrt(nkeys*1.0))
         ncols = int(np.ceil((nkeys*1.0) / nrows))
         for i in range(nkeys):
+            fcn_transform, dispname = self.param_display[self.paramnames[i]]
             plt.subplot(nrows, ncols, i+1)
-            plt.hist(samples[self.paramnames[i]])
-            plt.title(self.paramnames[i])
+            plt.hist(fcn_transform(samples[self.paramnames[i]]))
+            plt.title(dispname)
         plt.show()
 
 class Model2(Model):
@@ -262,15 +275,24 @@ if __name__ == "__main__":
     if args.model == "model1":
         model = Model(day_offset=day_offset)
         samples_fname = "pyro_samples.pkl"
+        filters_dict = {
+            "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
+            "incubation_period_lt_14": lambda s: (s["r_incub"] > 1./14),
+            "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
+        }
     elif args.model == "model2":
         model = Model2(day_offset=day_offset)
         samples_fname = "pyro_samples_model2.pkl"
+        filters_dict = {
+            "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
+            "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
+        }
 
     if mode == "infer":
         hmc_kernel = NUTS(model.inference, step_size=0.1)
         posterior = MCMC(hmc_kernel,
-                         num_samples=1000,
-                         warmup_steps=50)
+                         num_samples=10000,
+                         warmup_steps=500)
         posterior.run()
         samples = posterior.get_samples()
         with open(samples_fname, "wb") as fb:
@@ -280,9 +302,6 @@ if __name__ == "__main__":
         samples = pickle.load(fb)
     print("Collected %d samples" % len(samples[list(samples.keys())[0]]))
 
-    filters_dict = {
-        "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
-    }
     filter_keys = args.filters
     if filter_keys is not None:
         # filter the samples
