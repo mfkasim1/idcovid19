@@ -183,15 +183,26 @@ class Model:
 class Model2(Model):
     def __init__(self, fdata="data/data.csv", day_offset=33):
         self.prior = {
-            "t_incub"        : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "r_incub"        : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
             "inf_rate_unconf": Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
             "inf_rate_conf"  : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
             "surv_rate"      : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "t_conf"         : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
-            "t_dec_conf"     : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
-            "t_rec_conf"     : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
-            "t_dec_unconf"   : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
-            "t_rec_unconf"   : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "r_conf"         : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_dec_conf"     : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_rec_conf"     : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_dec_unconf"   : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_rec_unconf"   : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+        }
+        self.param_display = {
+            "r_incub"        : (lambda t: 1./t, "t_incub"),
+            "inf_rate_unconf": (lambda t:    t, "inf_rate_unconf"),
+            "inf_rate_conf"  : (lambda t:    t, "inf_rate_conf"),
+            "surv_rate"      : (lambda t:    t, "surv_rate"),
+            "r_conf"         : (lambda t: 1./t, "t_conf"),
+            "r_dec_conf"     : (lambda t: 1./t, "t_dec_conf"),
+            "r_rec_conf"     : (lambda t: 1./t, "t_rec_conf"),
+            "r_dec_unconf"   : (lambda t: 1./t, "t_dec_unconf"),
+            "r_rec_unconf"   : (lambda t: 1./t, "t_rec_unconf"),
         }
         self.vecnames = {
             "exposed": 0,
@@ -213,33 +224,33 @@ class Model2(Model):
 
     ###################### model specification ######################
     def construct_jac(self, params):
-        t_incub, \
+        r_incub, \
         inf_rate_unconf, \
         inf_rate_conf, \
         surv_rate, \
-        t_conf, \
-        t_dec_conf, \
-        t_rec_conf, \
-        t_dec_unconf, \
-        t_rec_unconf = self.unpack(params)
+        r_conf, \
+        r_dec_conf, \
+        r_rec_conf, \
+        r_dec_unconf, \
+        r_rec_unconf = self.unpack(params)
 
         nparams = self.nparams
         K_rate = torch.zeros(nparams, nparams).to(dtype)
-        K_rate[0,0] = -1./t_incub
+        K_rate[0,0] = -r_incub
         K_rate[0,1] = inf_rate_unconf
         K_rate[0,2] = inf_rate_unconf
         K_rate[0,3] = inf_rate_conf
         K_rate[0,4] = inf_rate_conf
-        K_rate[1,0] = (1-surv_rate)/t_incub
-        K_rate[1,1] = -1./t_dec_unconf - 1./t_conf
-        K_rate[2,0] = surv_rate/t_incub
-        K_rate[2,2] = -1./t_rec_unconf - 1./t_conf
-        K_rate[3,1] = 1./t_conf
-        K_rate[3,3] = -1./t_dec_conf
-        K_rate[4,2] = 1./t_conf
-        K_rate[4,4] = -1./t_rec_conf
-        K_rate[5,3] = 1./t_dec_conf
-        K_rate[6,4] = 1./t_rec_conf
+        K_rate[1,0] = (1-surv_rate)*r_incub
+        K_rate[1,1] = -r_dec_unconf - r_conf
+        K_rate[2,0] = surv_rate*r_incub
+        K_rate[2,2] = -r_rec_unconf - r_conf
+        K_rate[3,1] = r_conf
+        K_rate[3,3] = -r_dec_conf
+        K_rate[4,2] = r_conf
+        K_rate[4,4] = -r_rec_conf
+        K_rate[5,3] = r_dec_conf
+        K_rate[6,4] = r_rec_conf
 
         return K_rate
 
@@ -291,8 +302,8 @@ if __name__ == "__main__":
     if mode == "infer":
         hmc_kernel = NUTS(model.inference, step_size=0.1)
         posterior = MCMC(hmc_kernel,
-                         num_samples=10000,
-                         warmup_steps=500)
+                         num_samples=1000,
+                         warmup_steps=50)
         posterior.run()
         samples = posterior.get_samples()
         with open(samples_fname, "wb") as fb:
