@@ -39,9 +39,6 @@ class Model:
         self.obsnames = ["gradient", "dec_by_rec", "dec_by_infection"]
         self.paramnames = list(self.prior.keys())
 
-        # formula to calculate R0
-        self.r0_fcn = lambda p: (p["surv_rate"] / p["r_rec"] + (1-p["surv_rate"]) / p["r_dec"]) * p["inf_rate"]
-
         self.nparams = len(self.paramnames)
         self.nobs = len(self.obsnames)
 
@@ -73,6 +70,10 @@ class Model:
         # ]) # (nfeat,nfeat)
 
         return K_rate
+
+    def r0(self, p):
+        # p is a dictionary
+        return (p["surv_rate"] / p["r_rec"] + (1-p["surv_rate"]) / p["r_dec"]) * p["inf_rate"]
 
     ###################### observation specification ######################
     def get_simobservable(self, params):
@@ -179,14 +180,22 @@ class Model:
         ncols = int(np.ceil((ndraw*1.0) / nrows))
         for i in range(nkeys):
             fcn_transform, dispname = self.param_display[self.paramnames[i]]
+            samples_disp = np.asarray(fcn_transform(samples[self.paramnames[i]]))
             plt.subplot(nrows, ncols, i+1)
-            plt.hist(fcn_transform(samples[self.paramnames[i]]))
+            plt.hist(samples_disp)
             plt.title(dispname)
+            print("%25s: (median) %.3e, (1sigma) %.3e" % \
+                 (dispname, np.median(samples_disp),
+                  np.percentile(samples_disp, 86.1)-np.percentile(samples_disp, 15.9)))
 
         # plot R0
         plt.subplot(nrows, ncols, nkeys+1)
-        plt.hist(self.r0_fcn(samples))
+        samples_disp = np.asarray(self.r0(samples))
+        plt.hist(samples_disp)
         plt.title("R0")
+        print("%25s: (median) %.3e, (1sigma) %.3e" % \
+             ("R0", np.median(samples_disp),
+              np.percentile(samples_disp, 86.1)-np.percentile(samples_disp, 15.9)))
 
         plt.show()
 
@@ -325,7 +334,8 @@ if __name__ == "__main__":
         filters_dict = {
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
             "incubation_period_lt_14": lambda s: (s["r_incub"] > 1./14),
-            "med_survive_rate": lambda s: s["surv_rate"] > 0.8,
+            "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
+            "r0_24": lambda s: model.r0(s) - 2 < 2,
         }
     elif args.model == "model2":
         model = Model2(day_offset=day_offset)
@@ -340,6 +350,7 @@ if __name__ == "__main__":
         filters_dict = {
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
             "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
+            "r0_24": lambda s: model.r0(s) - 2 < 2,
         }
 
 
