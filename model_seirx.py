@@ -272,6 +272,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="model1")
     parser.add_argument("--infer", action="store_const", default=False, const=True)
+    parser.add_argument("--large", action="store_const", default=False, const=True)
     parser.add_argument("--filters", type=str, nargs="*")
     args = parser.parse_args()
 
@@ -281,11 +282,21 @@ if __name__ == "__main__":
     else:
         mode = "display"
 
+    # get the sample size
+    if args.large:
+        suffix = "_large"
+        nsamples = 10000
+        nwarmup = 500
+    else:
+        suffix = ""
+        nsamples = 1000
+        nwarmup = 50
+
     # choose model
     day_offset = 33
     if args.model == "model1":
         model = Model(day_offset=day_offset)
-        samples_fname = "pyro_samples.pkl"
+        samples_fname = "pyro_samples%s.pkl"%suffix
         filters_dict = {
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
             "incubation_period_lt_14": lambda s: (s["r_incub"] > 1./14),
@@ -293,7 +304,7 @@ if __name__ == "__main__":
         }
     elif args.model == "model2":
         model = Model2(day_offset=day_offset)
-        samples_fname = "pyro_samples_model2.pkl"
+        samples_fname = "pyro_samples_model2%s.pkl"%suffix
         filters_dict = {
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
             "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
@@ -302,8 +313,8 @@ if __name__ == "__main__":
     if mode == "infer":
         hmc_kernel = NUTS(model.inference, step_size=0.1)
         posterior = MCMC(hmc_kernel,
-                         num_samples=1000,
-                         warmup_steps=50)
+                         num_samples=nsamples,
+                         warmup_steps=nwarmup)
         posterior.run()
         samples = posterior.get_samples()
         with open(samples_fname, "wb") as fb:
