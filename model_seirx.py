@@ -332,12 +332,12 @@ if __name__ == "__main__":
         mode = "display"
 
     # get the sample size
+    suffix = "" if args.nchains==1 else ("_%d"%args.nchains)
     if args.large:
-        suffix = "_large"
+        suffix = suffix + "_large"
         nsamples = 10000
         nwarmup = 500
     else:
-        suffix = ""
         nsamples = 1000
         nwarmup = 50
 
