@@ -16,11 +16,11 @@ class Model:
         # vectors: exposed, infectious-dec, infectious-rec, dec, rec
 
         self.prior = {
-            "r_incub":   Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "inf_rate":  Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "surv_rate": Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "r_dec":     Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "r_rec":     Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_incub":   Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "inf_rate":  Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "surv_rate": Uniform(torch.tensor(0.5 , dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_dec":     Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_rec":     Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
         }
         self.param_display = {
             "r_incub": (lambda t: 1./t, "t_incub"),
@@ -266,6 +266,21 @@ class Model2(Model):
             (max_eigvec[self.vecnames["infectious_dec_conf"]] + max_eigvec[self.vecnames["infectious_rec_conf"]])
         return (gradient, dec_by_rec, dec_by_infection)
 
+class Model_A(Model):
+    """
+    Model 1 without the dec/infectious data
+    """
+    def __init__(self, *args, **kwargs):
+        super(Model_A, self).__init__(*args, **kwargs)
+        self.obsnames = self.obsnames[:2]
+        self.nobs = len(self.obsnames)
+
+    def get_simobservable(self, *args, **kwargs):
+        return super(Model_A, self).get_simobservable(*args, **kwargs)[:2]
+
+    def get_observable(self, *args, **kwargs):
+        return super(Model_A, self).get_observable(*args, **kwargs)[:2]
+
 
 if __name__ == "__main__":
     import argparse
@@ -309,6 +324,14 @@ if __name__ == "__main__":
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
             "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
         }
+    elif args.model == "modela":
+        model = Model_A(day_offset=day_offset)
+        samples_fname = "pyro_samples_modelA%s.pkl"%suffix
+        filters_dict = {
+            "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
+            "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
+        }
+
 
     if mode == "infer":
         hmc_kernel = NUTS(model.inference, step_size=0.1)
