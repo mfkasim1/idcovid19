@@ -321,6 +321,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, default="model1")
     parser.add_argument("--infer", action="store_const", default=False, const=True)
     parser.add_argument("--large", action="store_const", default=False, const=True)
+    parser.add_argument("--nchains", type=int, default=1)
     parser.add_argument("--filters", type=str, nargs="*")
     args = parser.parse_args()
 
@@ -380,7 +381,8 @@ if __name__ == "__main__":
         hmc_kernel = NUTS(model.inference, step_size=0.1)
         posterior = MCMC(hmc_kernel,
                          num_samples=nsamples,
-                         warmup_steps=nwarmup)
+                         warmup_steps=nwarmup,
+                         num_chains=args.nchains)
         posterior.run()
         samples = posterior.get_samples()
         with open(samples_fname, "wb") as fb:
