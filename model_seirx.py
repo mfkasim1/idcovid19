@@ -16,7 +16,7 @@ class Model:
 
         self.prior = {
             "t_incub": Uniform(0.1, 30.0),
-            "inf_rate": Uniform(0.01, 2.0),
+            "inf_rate": Uniform(0.01, 1.0),
             "surv_rate": Uniform(0.01, 1.0),
             "t_dec": Uniform(0.1, 30.0),
             "t_rec": Uniform(0.1, 30.0),
@@ -28,7 +28,7 @@ class Model:
             "dec": 3,
             "rec": 4,
         }
-        self.obsnames = ["t_rec_total", "gradient", "dec_by_rec", "dec_by_infection"]
+        self.obsnames = ["gradient", "dec_by_rec", "dec_by_infection"]
         self.paramnames = list(self.prior.keys())
 
         self.nparams = len(self.paramnames)
@@ -65,8 +65,6 @@ class Model:
 
     ###################### observation specification ######################
     def get_simobservable(self, params):
-        t_incub = params["t_incub"]
-        t_rec = params["t_rec"]
         jac = self.construct_jac(params) # (nparams, nparams)
         eigvals, eigvecs = eig.apply(jac)
         max_eigvecs = eigvecs[:,-1] * torch.sign(eigvecs[-1,-1])
@@ -76,7 +74,7 @@ class Model:
         dec_by_rec = max_eigvecs[self.vecnames["dec"]] / max_eigvecs[self.vecnames["rec"]]
         dec_by_infection = max_eigvecs[self.vecnames["infectious_dec"]] / \
             (max_eigvecs[self.vecnames["infectious_rec"]] + max_eigvecs[self.vecnames["infectious_dec"]])
-        return (t_incub+t_rec, gradient, dec_by_rec, dec_by_infection)
+        return (gradient, dec_by_rec, dec_by_infection)
 
     def get_observable(self, fdata, day_offset):
         data0 = np.loadtxt(fdata, skiprows=1, delimiter=",", usecols=list(range(1,8))).astype(np.float32)
@@ -100,12 +98,12 @@ class Model:
         dec_by_infection_std = np.std(ndec / ninfectious)
 
         # collect the distribution of the observation
-        obs_t_rec_total      = torch.tensor((18.0, 5.0))
+        # obs_t_rec_total      = torch.tensor((18.0, 5.0))
         obs_gradient         = torch.tensor((gradient, std_gradient))
         obs_dec_by_rec       = torch.tensor((dec_by_rec_mean, dec_by_rec_std))
         obs_dec_by_infection = torch.tensor((dec_by_infection_mean, dec_by_infection_std))
 
-        return (obs_t_rec_total, obs_gradient, obs_dec_by_rec, obs_dec_by_infection)
+        return (obs_gradient, obs_dec_by_rec, obs_dec_by_infection)
 
     ###################### util functions ######################
     def prior_params(self):
@@ -158,7 +156,7 @@ class Model:
 
 if __name__ == "__main__":
     mode = "infer"
-    mode = "display"
+    # mode = "display"
     samples_fname = "pyro_samples.pkl"
     day_offset = 33
     model = Model(day_offset=day_offset)
