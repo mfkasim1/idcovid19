@@ -121,15 +121,28 @@ class Model:
         for i in range(self.nobs):
             pyro.sample(self.obsnames[i], Normal(simobs[i], obs[i][1]), obs=obs[i][0])
 
-    def plot_obs_inferece(self, samples):
-        # samples is a dictionary with paramnames as keys and list of values
-        # as the values
+    ###################### postprocess ######################
+    def sample_observations(self, samples):
         nsamples = len(samples[self.paramnames[0]])
         simobs = []
         for i in range(nsamples):
             params = {name: samples[name][i] for name in self.paramnames}
             simobs.append(self.get_simobservable(params)) # (nsamples, nobs)
         simobs = list(zip(*simobs)) # (nobs, nsamples)
+        return np.asarray(simobs)
+
+    def filter_samples(self, samples, filters_dict, filters_keys):
+        idx = samples[self.paramnames[0]] > -float("inf")
+        for key in filters_keys:
+            filter_fcn = filters_dict[key]
+            idx = idx * filter_fcn(samples)
+        new_samples = {}
+        for name in self.paramnames:
+            new_samples[name] = samples[name][idx]
+        return new_samples
+
+    def plot_obs_inferece(self, simobs):
+        # simobs (nobs, nsamples)
 
         nobs = self.nobs
         obs = self.obs
@@ -155,8 +168,16 @@ class Model:
         plt.show()
 
 if __name__ == "__main__":
-    mode = "infer"
-    # mode = "display"
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--infer", action="store_const", default=False, const=True)
+    parser.add_argument("--filters", type=str, nargs="*")
+    args = parser.parse_args()
+
+    if args.infer:
+        mode = "infer"
+    else:
+        mode = "display"
     samples_fname = "pyro_samples.pkl"
     day_offset = 33
     model = Model(day_offset=day_offset)
@@ -173,10 +194,20 @@ if __name__ == "__main__":
 
     with open(samples_fname, "rb") as fb:
         samples = pickle.load(fb)
+    print("Collected %d samples" % len(samples[list(samples.keys())[0]]))
 
-    keys = list(samples.keys())
-    nkeys = len(keys)
+    filters_dict = {
+        "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
+    }
+    filter_keys = args.filters
+    if len(filter_keys) > 0:
+        # filter the samples
+        samples = model.filter_samples(samples, filters_dict, filter_keys)
+        print("Filtered into %d samples" % len(samples[list(samples.keys())[0]]))
+
+    # simobs: (nobs, nsamples)
+    simobs = model.sample_observations(samples)
 
     # plot the observation
-    model.plot_obs_inferece(samples)
+    model.plot_obs_inferece(simobs)
     model.plot_samples(samples)
