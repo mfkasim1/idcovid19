@@ -167,20 +167,105 @@ class Model:
             plt.title(self.paramnames[i])
         plt.show()
 
+class Model2(Model):
+    def __init__(self, fdata="data/data.csv", day_offset=33):
+        self.prior = {
+            "t_incub": Uniform(0.1, 30.0),
+            "inf_rate_unconf": Uniform(0.01, 1.0),
+            "inf_rate_conf": Uniform(0.01, 1.0),
+            "surv_rate": Uniform(0.01, 1.0),
+            "t_conf": Uniform(0.1, 30.0),
+            "t_dec_conf": Uniform(0.1, 30.0),
+            "t_rec_conf": Uniform(0.1, 30.0),
+            "t_dec_unconf": Uniform(0.1, 30.0),
+            "t_rec_unconf": Uniform(0.1, 30.0),
+        }
+        self.vecnames = {
+            "exposed": 0,
+            "infectious_dec_unconf": 1,
+            "infectious_rec_unconf": 2,
+            "infectious_dec_conf": 3,
+            "infectious_rec_conf": 4,
+            "dec_conf": 5,
+            "rec_conf": 6,
+        }
+        self.obsnames = ["gradient", "dec_by_rec", "dec_by_infection"]
+        self.paramnames = list(self.prior.keys())
+
+        self.nparams = len(self.paramnames)
+        self.nobs = len(self.obsnames)
+
+        # load the data
+        self.obs = self.get_observable(fdata, day_offset)
+
+    ###################### model specification ######################
+    def construct_jac(self, params):
+        t_incub, \
+        inf_rate_unconf, \
+        inf_rate_conf, \
+        surv_rate, \
+        t_conf, \
+        t_dec_conf, \
+        t_rec_conf, \
+        t_dec_unconf, \
+        t_rec_unconf = self.unpack(params)
+
+        nparams = self.nparams
+        K_rate = torch.zeros(nparams, nparams)
+        K_rate[0,0] = -1./t_incub
+        K_rate[0,1] = inf_rate_unconf
+        K_rate[0,2] = inf_rate_unconf
+        K_rate[0,3] = inf_rate_conf
+        K_rate[0,4] = inf_rate_conf
+        K_rate[1,0] = (1-surv_rate)/t_incub
+        K_rate[1,1] = -1./t_dec_unconf - 1./t_conf
+        K_rate[2,0] = surv_rate/t_incub
+        K_rate[2,2] = -1./t_rec_unconf - 1./t_conf
+        K_rate[3,1] = 1./t_conf
+        K_rate[3,3] = -1./t_dec_conf
+        K_rate[4,2] = 1./t_conf
+        K_rate[4,4] = -1./t_rec_conf
+        K_rate[5,3] = 1./t_dec_conf
+        K_rate[6,4] = 1./t_rec_conf
+
+        return K_rate
+
+    ###################### observation specification ######################
+    def get_simobservable(self, params):
+        jac = self.construct_jac(params) # (nparams, nparams)
+        eigvals, eigvecs = eig.apply(jac)
+        max_eigvecs = eigvecs[:,-1] * torch.sign(eigvecs[-1,-1])
+
+        # calculate the observable
+        gradient = eigvals[-1] # the largest eigenvalue
+        dec_by_rec = max_eigvecs[self.vecnames["dec_conf"]] / max_eigvecs[self.vecnames["rec_conf"]]
+        dec_by_infection = max_eigvecs[self.vecnames["dec_conf"]] / \
+            (max_eigvecs[self.vecnames["infectious_dec_conf"]] + max_eigvecs[self.vecnames["infectious_rec_conf"]])
+        return (gradient, dec_by_rec, dec_by_infection)
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, default="model1")
     parser.add_argument("--infer", action="store_const", default=False, const=True)
     parser.add_argument("--filters", type=str, nargs="*")
     args = parser.parse_args()
 
+    # get the mode of operation
     if args.infer:
         mode = "infer"
     else:
         mode = "display"
-    samples_fname = "pyro_samples.pkl"
+
+    # choose model
     day_offset = 33
-    model = Model(day_offset=day_offset)
+    if args.model == "model1":
+        model = Model(day_offset=day_offset)
+        samples_fname = "pyro_samples.pkl"
+    elif args.model == "model2":
+        model = Model2(day_offset=day_offset)
+        samples_fname = "pyro_samples_model2.pkl"
 
     if mode == "infer":
         hmc_kernel = NUTS(model.inference, step_size=0.1)
@@ -200,7 +285,7 @@ if __name__ == "__main__":
         "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
     }
     filter_keys = args.filters
-    if len(filter_keys) > 0:
+    if filter_keys is not None:
         # filter the samples
         samples = model.filter_samples(samples, filters_dict, filter_keys)
         print("Filtered into %d samples" % len(samples[list(samples.keys())[0]]))
