@@ -39,6 +39,9 @@ class Model:
         self.obsnames = ["gradient", "dec_by_rec", "dec_by_infection"]
         self.paramnames = list(self.prior.keys())
 
+        # formula to calculate R0
+        self.r0_fcn = lambda p: (p["surv_rate"] / p["r_rec"] + (1-p["surv_rate"]) / p["r_dec"]) * p["inf_rate"]
+
         self.nparams = len(self.paramnames)
         self.nobs = len(self.obsnames)
 
@@ -171,13 +174,20 @@ class Model:
 
     def plot_samples(self, samples):
         nkeys = self.nparams
-        nrows = int(np.sqrt(nkeys*1.0))
-        ncols = int(np.ceil((nkeys*1.0) / nrows))
+        ndraw = nkeys + 1
+        nrows = int(np.sqrt(ndraw*1.0))
+        ncols = int(np.ceil((ndraw*1.0) / nrows))
         for i in range(nkeys):
             fcn_transform, dispname = self.param_display[self.paramnames[i]]
             plt.subplot(nrows, ncols, i+1)
             plt.hist(fcn_transform(samples[self.paramnames[i]]))
             plt.title(dispname)
+
+        # plot R0
+        plt.subplot(nrows, ncols, nkeys+1)
+        plt.hist(self.r0_fcn(samples))
+        plt.title("R0")
+
         plt.show()
 
 class Model2(Model):
@@ -315,7 +325,7 @@ if __name__ == "__main__":
         filters_dict = {
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
             "incubation_period_lt_14": lambda s: (s["r_incub"] > 1./14),
-            "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
+            "med_survive_rate": lambda s: s["surv_rate"] > 0.8,
         }
     elif args.model == "model2":
         model = Model2(day_offset=day_offset)
