@@ -72,7 +72,7 @@ class Model:
         # calculate the observable
         gradient = eigvals[-1] # the largest eigenvalue
         dec_by_rec = max_eigvecs[self.vecnames["dec"]] / max_eigvecs[self.vecnames["rec"]]
-        dec_by_infection = max_eigvecs[self.vecnames["infectious_dec"]] / \
+        dec_by_infection = max_eigvecs[self.vecnames["dec"]] / \
             (max_eigvecs[self.vecnames["infectious_rec"]] + max_eigvecs[self.vecnames["infectious_dec"]])
         return (gradient, dec_by_rec, dec_by_infection)
 
