@@ -7,19 +7,20 @@ from pyro.infer.mcmc import MCMC
 from pyro.infer.mcmc.nuts import NUTS, HMC
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
-from utils.eig import eig
+from utils.maxeig import maxeig
 
+dtype = torch.float64
 
 class Model:
     def __init__(self, fdata="data/data.csv", day_offset=33):
         # vectors: exposed, infectious-dec, infectious-rec, dec, rec
 
         self.prior = {
-            "t_incub": Uniform(0.1, 30.0),
-            "inf_rate": Uniform(0.01, 1.0),
-            "surv_rate": Uniform(0.01, 1.0),
-            "t_dec": Uniform(0.1, 30.0),
-            "t_rec": Uniform(0.1, 30.0),
+            "t_incub":   Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "inf_rate":  Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "surv_rate": Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "t_dec":     Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "t_rec":     Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
         }
         self.vecnames = {
             "exposed": 0,
@@ -42,7 +43,7 @@ class Model:
         t_incub, inf_rate, surv_rate, t_dec, t_rec = self.unpack(params)
 
         nparams = self.nparams
-        K_rate = torch.zeros(nparams, nparams)
+        K_rate = torch.zeros(nparams, nparams).to(dtype)
         K_rate[0,0] = -1./t_incub
         K_rate[0,1] = inf_rate
         K_rate[0,2] = inf_rate
@@ -66,14 +67,13 @@ class Model:
     ###################### observation specification ######################
     def get_simobservable(self, params):
         jac = self.construct_jac(params) # (nparams, nparams)
-        eigvals, eigvecs = eig.apply(jac)
-        max_eigvecs = eigvecs[:,-1] * torch.sign(eigvecs[-1,-1])
+        max_eigval, max_eigvec, _ = maxeig.apply(jac)
 
         # calculate the observable
-        gradient = eigvals[-1] # the largest eigenvalue
-        dec_by_rec = max_eigvecs[self.vecnames["dec"]] / max_eigvecs[self.vecnames["rec"]]
-        dec_by_infection = max_eigvecs[self.vecnames["dec"]] / \
-            (max_eigvecs[self.vecnames["infectious_rec"]] + max_eigvecs[self.vecnames["infectious_dec"]])
+        gradient = max_eigval
+        dec_by_rec = max_eigvec[self.vecnames["dec"]] / max_eigvec[self.vecnames["rec"]]
+        dec_by_infection = max_eigvec[self.vecnames["dec"]] / \
+            (max_eigvec[self.vecnames["infectious_rec"]] + max_eigvec[self.vecnames["infectious_dec"]])
         return (gradient, dec_by_rec, dec_by_infection)
 
     def get_observable(self, fdata, day_offset):
@@ -99,9 +99,9 @@ class Model:
 
         # collect the distribution of the observation
         # obs_t_rec_total      = torch.tensor((18.0, 5.0))
-        obs_gradient         = torch.tensor((gradient, std_gradient))
-        obs_dec_by_rec       = torch.tensor((dec_by_rec_mean, dec_by_rec_std))
-        obs_dec_by_infection = torch.tensor((dec_by_infection_mean, dec_by_infection_std))
+        obs_gradient         = torch.tensor((gradient, std_gradient), dtype=dtype)
+        obs_dec_by_rec       = torch.tensor((dec_by_rec_mean, dec_by_rec_std), dtype=dtype)
+        obs_dec_by_infection = torch.tensor((dec_by_infection_mean, dec_by_infection_std), dtype=dtype)
 
         return (obs_gradient, obs_dec_by_rec, obs_dec_by_infection)
 
@@ -170,15 +170,15 @@ class Model:
 class Model2(Model):
     def __init__(self, fdata="data/data.csv", day_offset=33):
         self.prior = {
-            "t_incub": Uniform(0.1, 30.0),
-            "inf_rate_unconf": Uniform(0.01, 1.0),
-            "inf_rate_conf": Uniform(0.01, 1.0),
-            "surv_rate": Uniform(0.01, 1.0),
-            "t_conf": Uniform(0.1, 30.0),
-            "t_dec_conf": Uniform(0.1, 30.0),
-            "t_rec_conf": Uniform(0.1, 30.0),
-            "t_dec_unconf": Uniform(0.1, 30.0),
-            "t_rec_unconf": Uniform(0.1, 30.0),
+            "t_incub"        : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "inf_rate_unconf": Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "inf_rate_conf"  : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "surv_rate"      : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "t_conf"         : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "t_dec_conf"     : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "t_rec_conf"     : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "t_dec_unconf"   : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
+            "t_rec_unconf"   : Uniform(torch.tensor(0.1, dtype=dtype), torch.tensor(30.0, dtype=dtype)),
         }
         self.vecnames = {
             "exposed": 0,
@@ -211,7 +211,7 @@ class Model2(Model):
         t_rec_unconf = self.unpack(params)
 
         nparams = self.nparams
-        K_rate = torch.zeros(nparams, nparams)
+        K_rate = torch.zeros(nparams, nparams).to(dtype)
         K_rate[0,0] = -1./t_incub
         K_rate[0,1] = inf_rate_unconf
         K_rate[0,2] = inf_rate_unconf
@@ -233,14 +233,13 @@ class Model2(Model):
     ###################### observation specification ######################
     def get_simobservable(self, params):
         jac = self.construct_jac(params) # (nparams, nparams)
-        eigvals, eigvecs = eig.apply(jac)
-        max_eigvecs = eigvecs[:,-1] * torch.sign(eigvecs[-1,-1])
+        max_eigval, max_eigvec, _ = maxeig.apply(jac)
 
         # calculate the observable
-        gradient = eigvals[-1] # the largest eigenvalue
-        dec_by_rec = max_eigvecs[self.vecnames["dec_conf"]] / max_eigvecs[self.vecnames["rec_conf"]]
-        dec_by_infection = max_eigvecs[self.vecnames["dec_conf"]] / \
-            (max_eigvecs[self.vecnames["infectious_dec_conf"]] + max_eigvecs[self.vecnames["infectious_rec_conf"]])
+        gradient = max_eigval # the largest eigenvalue
+        dec_by_rec = max_eigvec[self.vecnames["dec_conf"]] / max_eigvec[self.vecnames["rec_conf"]]
+        dec_by_infection = max_eigvec[self.vecnames["dec_conf"]] / \
+            (max_eigvec[self.vecnames["infectious_dec_conf"]] + max_eigvec[self.vecnames["infectious_rec_conf"]])
         return (gradient, dec_by_rec, dec_by_infection)
 
 
