@@ -4,6 +4,12 @@ from idcovid19.models.base_model import BaseModel
 from idcovid19.utils.misc import memoize
 
 class Model1(BaseModel):
+    """
+    Model 1 is a modification of SEIR model with path splitting into two.
+
+    exposed --> infectious_rec -> recovered
+            |-> infectious_dec -> deceased
+    """
     @property
     @memoize
     def prior(self):

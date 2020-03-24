@@ -153,7 +153,6 @@ class BaseModel(object):
 
     def plot_samples(self, samples):
         disp_names = list(self.display_fcn.keys())
-        disp_names = list(display_params.keys())
         ndraw = len(disp_names)
         nrows = int(np.sqrt(ndraw*1.0))
         ncols = int(np.ceil((ndraw*1.0) / nrows))

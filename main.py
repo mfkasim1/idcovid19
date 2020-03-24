@@ -1,4 +1,5 @@
 import argparse
+import pickle
 import numpy as np
 from pyro.infer.mcmc import MCMC
 from pyro.infer.mcmc.nuts import NUTS, HMC
