@@ -68,7 +68,7 @@ class maxeig(torch.autograd.Function):
         return grad_A_evec + grad_A_eval + grad_A_levec
 
 if __name__ == "__main__":
-    from fd import finite_differences
+    from idcovid19.utils.fd import finite_differences
 
     A = torch.tensor([
         [-6.8094e-02,  3.4940e-01,  3.4940e-01,  0.0000e+00,  0.0000e+00],
