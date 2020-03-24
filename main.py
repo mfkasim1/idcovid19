@@ -63,12 +63,18 @@ def main(args, fdata="data/data.csv", day_offset=33, ndays=1000, prefix=""):
 if __name__ == "__main__":
     # parse args from cmd line
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", type=str, default="id")
-    parser.add_argument("--model", type=str, default="model1")
-    parser.add_argument("--infer", action="store_const", default=False, const=True)
-    parser.add_argument("--large", action="store_const", default=False, const=True)
-    parser.add_argument("--nchains", type=int, default=1)
-    parser.add_argument("--filters", type=str, nargs="*")
+    parser.add_argument("--data", type=str, default="id",
+        help="Which data to use (currently only 'id' or 'cn')")
+    parser.add_argument("--model", type=str, default="model2",
+        help="The mathematical model to use ('model1' or 'model2')")
+    parser.add_argument("--filters", type=str, nargs="*",
+        help="Filter the posterior data (see idcovid19/models/model*.py for filter options)")
+    parser.add_argument("--infer", action="store_const", default=False, const=True,
+        help="Flag to invoke the inference mode")
+    parser.add_argument("--large", action="store_const", default=False, const=True,
+        help="If invoked, then it will collect 10,000 samples (ignored if no --infer).")
+    parser.add_argument("--nchains", type=int, default=1,
+        help="The number of parallel chains in MCMC (ignored if no --infer).")
     args = parser.parse_args()
 
     if args.data == "id":
