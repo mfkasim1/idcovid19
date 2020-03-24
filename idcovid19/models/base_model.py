@@ -20,26 +20,32 @@ class BaseModel(object):
         self.nobs = len(self.obsnames)
 
     ################# model specification #################
+    ##### parameter-related #####
     @abstractproperty
     def prior(self):
         # return a dictionary of paramname to distribution
         pass
 
     @abstractmethod
-    def display(self, samples):
-        # samples is a dictionary with variable names as the keys and list of values as the values
-        # returns a dictionary with display name as the keys and list of values as the values
-        pass
-
-    @abstractmethod
-    def get_simdata(self, vec, key):
-        # vec: (nparams,) tensor
-        # key: enum("confirmed_case", "confirmed_death", "confirmed_recovery", "r0")
-        pass
-
-    @abstractmethod
     def construct_jac(self, params):
         # params: dictionary with paramnames as keys and their values as the values
+        pass
+
+    @abstractproperty
+    def display_fcn(self):
+        # returns a dictionary with display name as the keys and a function of (params -> display params) as the values
+        pass
+
+    ##### state-related #####
+    @abstractproperty
+    def vecstate(self):
+        # returns a dictionary with states as the key and the order in state vector as the values
+        pass
+
+    @abstractproperty
+    def simdata_fcn(self):
+        # returns a dictionary with key listed below and a function of (vec: (nparams,) tensor) -> a value as the values
+        # key: enum("confirmed_case", "confirmed_death", "confirmed_recovery")
         pass
 
     ################# observation #################
@@ -49,10 +55,10 @@ class BaseModel(object):
 
         # calculate the observable
         gradient = max_eigval
-        dec_by_rec = self.get_simdata(max_eigvec, "confirmed_death") / \
-                     self.get_simdata(max_eigvec, "confirmed_recovery")
-        dec_by_infection = self.get_simdata(max_eigvec, "confirmed_death") / \
-                     self.get_simdata(max_eigvec, "confirmed_case")
+        dec_by_rec = self.simdata_fcn["confirmed_death"](max_eigvec) / \
+                     self.simdata_fcn["confirmed_recovery"](max_eigvec)
+        dec_by_infection = self.simdata_fcn["confirmed_death"](max_eigvec) / \
+                           self.simdata_fcn["confirmed_case"](max_eigvec)
         return (gradient, dec_by_rec, dec_by_infection)
 
     def get_observable(self, data):
@@ -141,14 +147,14 @@ class BaseModel(object):
         plt.show()
 
     def plot_samples(self, samples):
-        display_params = self.display(samples)
+        disp_names = list(self.display_fcn.keys())
         disp_names = list(display_params.keys())
         ndraw = len(disp_names)
         nrows = int(np.sqrt(ndraw*1.0))
         ncols = int(np.ceil((ndraw*1.0) / nrows))
         for i in range(ndraw):
             dispname = disp_names[i]
-            samples_disp = display_params[dispname]
+            samples_disp = self.display_fcn[dispname](samples)
             plt.subplot(nrows, ncols, i+1)
             plt.hist(samples_disp)
             plt.xlabel(dispname)
