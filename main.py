@@ -56,11 +56,11 @@ def main(fdata="data/data.csv", day_offset=33):
         samples = pickle.load(fb)
     print("Collected %d samples" % len(samples[list(samples.keys())[0]]))
 
-    # filter_keys = args.filters
-    # if filter_keys is not None:
-    #     # filter the samples
-    #     samples = model.filter_samples(samples, filters_dict, filter_keys)
-    #     print("Filtered into %d samples" % len(samples[list(samples.keys())[0]]))
+    filter_keys = args.filters
+    if filter_keys is not None:
+        # filter the samples
+        samples = model.filter_samples(samples, filter_keys)
+        print("Filtered into %d samples" % len(samples[list(samples.keys())[0]]))
 
     # simobs: (nobs, nsamples)
     simobs = model.sample_observations(samples)

@@ -31,6 +31,10 @@ class BaseModel(object):
         # return a dictionary of paramname to distribution
         pass
 
+    @abstractproperty
+    def filters(self):
+        pass
+
     @abstractmethod
     def construct_jac(self, params):
         # params: dictionary with paramnames as keys and their values as the values
@@ -125,10 +129,10 @@ class BaseModel(object):
         simobs = list(zip(*simobs)) # (nobs, nsamples)
         return np.asarray(simobs)
 
-    def filter_samples(self, samples, filters_dict, filters_keys):
+    def filter_samples(self, samples, filters_keys):
         idx = samples[self.paramnames[0]] > -float("inf")
         for key in filters_keys:
-            filter_fcn = filters_dict[key]
+            filter_fcn = self.filters[key]
             idx = idx * filter_fcn(samples)
         new_samples = {}
         for name in self.paramnames:

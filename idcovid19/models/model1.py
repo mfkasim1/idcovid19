@@ -24,6 +24,13 @@ class Model1(BaseModel):
 
     @property
     @memoize
+    def filters(self):
+        return {
+            "r0_4": lambda p: self.display_fcn["R0"](p) < 4,
+        }
+
+    @property
+    @memoize
     def display_fcn(self):
         return {
             "Incubation period": lambda p: 1./p["r_incub"],

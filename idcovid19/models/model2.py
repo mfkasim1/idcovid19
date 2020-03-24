@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from pyro.distributions import Uniform, Normal
 from idcovid19.models.base_model import BaseModel
 from idcovid19.utils.misc import memoize
@@ -21,7 +22,15 @@ class Model2(BaseModel):
             "surv_rate": Uniform(torch.tensor(0.5 , dtype=self.dtype), torch.tensor(1.0, dtype=self.dtype)),
             "r_iso":     Uniform(torch.tensor(0.04, dtype=self.dtype), torch.tensor(1.0, dtype=self.dtype)),
             "r_dec":     Uniform(torch.tensor(0.04, dtype=self.dtype), torch.tensor(1.0, dtype=self.dtype)),
-            "r_rec":     Uniform(torch.tensor(0.04, dtype=self.dtype), torch.tensor(1.0, dtype=self.dtype)),
+            "r_rec":     Uniform(torch.tensor(0.01, dtype=self.dtype), torch.tensor(1.0, dtype=self.dtype)),
+        }
+
+    @property
+    @memoize
+    def filters(self):
+        return {
+            "r0_4": lambda p: self.display_fcn["R0"](p) < 4,
+            "dec_period": lambda p: (1./p["r_dec"]*np.log(2) < 13) * (1./p["r_dec"]*np.log(2) > 9),
         }
 
     @property
