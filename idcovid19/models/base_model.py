@@ -15,7 +15,7 @@ class BaseModel(object):
         # data is a matrix with column: (day#, new_infect, new_rec, new_dec, cum_infect, cum_rec, cum_dec)
         self._dtype = dtype
         self.obs = self.get_observable(data)
-        self.obsnames = ["gradient", "dec_by_rec", "dec_by_infection"]
+        self.obsnames = ["Exponential factor", "Deceased/recovered ratio", "Deceased/cases ratio"]
         self.paramnames = list(self.prior.keys())
         self.nparams = len(self.paramnames)
         self.nobs = len(self.obsnames)
@@ -146,13 +146,16 @@ class BaseModel(object):
         obs = self.obs
         nrows = int(np.sqrt(nobs*1.0))
         ncols = int(np.ceil((nobs*1.0) / nrows))
+        plt.figure(figsize=(ncols*3, nrows*3))
         for i in range(nobs):
             plt.subplot(nrows, ncols, i+1)
-            plt.hist(simobs[i])
-            plt.axvline(float(obs[i][0]), color='C1', linestyle='-')
-            plt.axvline(float(obs[i][0])-float(obs[i][1]), color='C1', linestyle='--')
+            plt.hist(simobs[i], label="Posterior distribution")
+            plt.axvline(float(obs[i][0]), color='C1', linestyle='-', label="Mean value from data")
+            plt.axvline(float(obs[i][0])-float(obs[i][1]), color='C1', linestyle='--', label="1$\sigma$ range of value")
             plt.axvline(float(obs[i][0])+float(obs[i][1]), color='C1', linestyle='--')
-            plt.title(self.obsnames[i])
+            plt.xlabel(self.obsnames[i])
+            if i == 0: plt.legend()
+        plt.tight_layout()
         plt.show()
 
     def plot_samples(self, samples):
@@ -160,6 +163,7 @@ class BaseModel(object):
         ndraw = len(disp_names)
         nrows = int(np.sqrt(ndraw*1.0))
         ncols = int(np.ceil((ndraw*1.0) / nrows))
+        plt.figure(figsize=(ncols*3, nrows*3))
         for i in range(ndraw):
             dispname = disp_names[i]
             samples_disp = self.display_fcn[dispname](samples)
@@ -170,4 +174,5 @@ class BaseModel(object):
                  (dispname, np.median(samples_disp),
                   np.percentile(samples_disp, 86.1)-np.median(samples_disp),
                   np.median(samples_disp)-np.percentile(samples_disp, 15.9)))
+        plt.tight_layout()
         plt.show()
