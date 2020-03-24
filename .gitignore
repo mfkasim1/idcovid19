@@ -2,6 +2,8 @@ outcmaes/*
 data/data.xlsx
 *.pkl
 *.h5
+drawings/*
+notebooks/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
