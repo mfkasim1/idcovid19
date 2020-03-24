@@ -8,16 +8,21 @@ from pyro.infer.mcmc import MCMC
 from pyro.infer.mcmc.nuts import NUTS, HMC
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
-from utils.maxeig import maxeig
+from idcovid19.utils.maxeig import maxeig
 
 class BaseModel(object):
-    def __init__(self, data):
+    def __init__(self, data, dtype=torch.float64):
         # data is a matrix with column: (day#, new_infect, new_rec, new_dec, cum_infect, cum_rec, cum_dec)
+        self._dtype = dtype
         self.obs = self.get_observable(data)
         self.obsnames = ["gradient", "dec_by_rec", "dec_by_infection"]
         self.paramnames = list(self.prior.keys())
         self.nparams = len(self.paramnames)
         self.nobs = len(self.obsnames)
+
+    @property
+    def dtype(self):
+        return self._dtype
 
     ################# model specification #################
     ##### parameter-related #####
@@ -82,9 +87,9 @@ class BaseModel(object):
 
         # collect the distribution of the observation
         # obs_t_rec_total      = torch.tensor((18.0, 5.0))
-        obs_gradient         = torch.tensor((gradient, std_gradient), dtype=dtype)
-        obs_dec_by_rec       = torch.tensor((dec_by_rec_mean, dec_by_rec_std), dtype=dtype)
-        obs_dec_by_infection = torch.tensor((dec_by_infection_mean, dec_by_infection_std), dtype=dtype)
+        obs_gradient         = torch.tensor((gradient, std_gradient), dtype=self.dtype)
+        obs_dec_by_rec       = torch.tensor((dec_by_rec_mean, dec_by_rec_std), dtype=self.dtype)
+        obs_dec_by_infection = torch.tensor((dec_by_infection_mean, dec_by_infection_std), dtype=self.dtype)
 
         return (obs_gradient, obs_dec_by_rec, obs_dec_by_infection)
 

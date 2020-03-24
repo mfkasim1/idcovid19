@@ -5,7 +5,7 @@ def memoize(method):
     See https://en.wikipedia.org/wiki/Memoization
     """
     @wraps(method)
-    def wrapper(obj) -> np.ndarray:
+    def wrapper(obj):
         attrname = '_' + method.__name__
         result = getattr(obj, attrname, None)
         if result is None:

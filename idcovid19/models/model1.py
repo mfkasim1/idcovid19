@@ -1,7 +1,7 @@
 import torch
 from pyro.distributions import Uniform, Normal
 from idcovid19.models.base_model import BaseModel
-from idcovid19.utils.miscs import memoize
+from idcovid19.utils.misc import memoize
 
 class Model1(BaseModel):
     @property
@@ -9,11 +9,11 @@ class Model1(BaseModel):
     def prior(self):
         # prior of parameters
         return {
-            "r_incub":   Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "inf_rate":  Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "surv_rate": Uniform(torch.tensor(0.5 , dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "r_dec":     Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
-            "r_rec":     Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_incub":   Uniform(torch.tensor(0.03, dtype=self.dtype), torch.tensor(1.0, dtype=self.dtype)),
+            "inf_rate":  Uniform(torch.tensor(0.03, dtype=self.dtype), torch.tensor(1.0, dtype=self.dtype)),
+            "surv_rate": Uniform(torch.tensor(0.5 , dtype=self.dtype), torch.tensor(1.0, dtype=self.dtype)),
+            "r_dec":     Uniform(torch.tensor(0.03, dtype=self.dtype), torch.tensor(1.0, dtype=self.dtype)),
+            "r_rec":     Uniform(torch.tensor(0.03, dtype=self.dtype), torch.tensor(1.0, dtype=self.dtype)),
         }
 
     @property
@@ -31,7 +31,7 @@ class Model1(BaseModel):
         # jacobian from parameters
         r_incub, inf_rate, surv_rate, r_dec, r_rec = self.unpack(params)
         nparams = len(self.prior)
-        K_rate = torch.zeros(nparams, nparams).to(dtype)
+        K_rate = torch.zeros(nparams, nparams).to(self.dtype)
 
         K_rate[0,0] = -r_incub
         K_rate[0,1] = inf_rate
