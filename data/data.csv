@@ -1,4 +1,4 @@
-Date,Day,New_confirmed_cases,New_recoveries,New_deaths,Accum_confirmed,Accum_recoveries,Accum_deaths
+﻿Date,Day,New_confirmed_cases,New_recoveries,New_deaths,Accum_confirmed,Accum_recoveries,Accum_deaths
 14/02/2020,0,0,0,0,0,0,0
 15/02/2020,1,0,0,0,0,0,0
 16/02/2020,2,0,0,0,0,0,0
@@ -38,3 +38,4 @@ Date,Day,New_confirmed_cases,New_recoveries,New_deaths,Accum_confirmed,Accum_rec
 21/03/2020,36,81,3,6,448,20,38
 22/03/2020,37,64,9,10,512,29,48
 23/03/2020,38,65,1,1,577,30,49
+24/03/2020,39,107,0,6,684,30,55
