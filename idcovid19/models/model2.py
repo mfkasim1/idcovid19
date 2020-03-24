@@ -42,8 +42,8 @@ class Model2(BaseModel):
             # "Infection rate": lambda p: p["inf_rate"],
             "Survival rate": lambda p: p["surv_rate"],
             # "Isolation period": lambda p: 1./p["r_iso"],
-            "Deceased period": lambda p: np.log(2)/p["r_dec"],
-            "Recovery period": lambda p: np.log(2)/p["r_rec"],
+            # "Deceased period": lambda p: np.log(2)/p["r_dec"],
+            # "Recovery period": lambda p: np.log(2)/p["r_rec"],
             "R0": lambda p: p["inf_rate"] / p["r_iso"],
         }
 
