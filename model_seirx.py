@@ -291,6 +291,82 @@ class Model2(Model):
             (max_eigvec[self.vecnames["infectious_dec_conf"]] + max_eigvec[self.vecnames["infectious_rec_conf"]])
         return (gradient, dec_by_rec, dec_by_infection)
 
+class Model3(Model2):
+    def __init__(self, fdata="data/data.csv", day_offset=33):
+        self.prior = {
+            "r_incub"        : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_rec_not_inf"  : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "inf_rate_unconf": Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "inf_rate_conf"  : Uniform(torch.tensor(0.01, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "surv_rate"      : Uniform(torch.tensor(0.5 , dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_conf"         : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_dec_conf"     : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_rec_conf"     : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_dec_unconf"   : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+            "r_rec_unconf"   : Uniform(torch.tensor(0.03, dtype=dtype), torch.tensor(1.0, dtype=dtype)),
+        }
+        self.param_display = {
+            "r_incub"        : (lambda t: 1./t, "t_incub"),
+            "r_rec_not_inf"  : (lambda t: 1./t, "t_rec_not_inf"),
+            "inf_rate_unconf": (lambda t:    t, "inf_rate_unconf"),
+            "inf_rate_conf"  : (lambda t:    t, "inf_rate_conf"),
+            "surv_rate"      : (lambda t:    t, "surv_rate"),
+            "r_conf"         : (lambda t: 1./t, "t_conf"),
+            "r_dec_conf"     : (lambda t: 1./t, "t_dec_conf"),
+            "r_rec_conf"     : (lambda t: 1./t, "t_rec_conf"),
+            "r_dec_unconf"   : (lambda t: 1./t, "t_dec_unconf"),
+            "r_rec_unconf"   : (lambda t: 1./t, "t_rec_unconf"),
+        }
+        self.vecnames = {
+            "exposed": 0,
+            "infectious_dec_unconf": 1,
+            "infectious_rec_unconf": 2,
+            "infectious_dec_conf": 3,
+            "infectious_rec_conf": 4,
+            "dec_conf": 5,
+            "rec_conf": 6,
+        }
+        self.obsnames = ["gradient", "dec_by_rec", "dec_by_infection"]
+        self.paramnames = list(self.prior.keys())
+
+        self.nparams = len(self.paramnames)
+        self.nobs = len(self.obsnames)
+
+        # load the data
+        self.obs = self.get_observable(fdata, day_offset)
+
+    def construct_jac(self, params):
+        r_incub, \
+        r_rec_not_inf, \
+        inf_rate_unconf, \
+        inf_rate_conf, \
+        surv_rate, \
+        r_conf, \
+        r_dec_conf, \
+        r_rec_conf, \
+        r_dec_unconf, \
+        r_rec_unconf = self.unpack(params)
+
+        nparams = self.nparams
+        K_rate = torch.zeros(nparams, nparams).to(dtype)
+        K_rate[0,0] = -r_incub - r_rec_not_inf
+        K_rate[0,1] = inf_rate_unconf
+        K_rate[0,2] = inf_rate_unconf
+        K_rate[0,3] = inf_rate_conf
+        K_rate[0,4] = inf_rate_conf
+        K_rate[1,0] = (1-surv_rate)*r_incub
+        K_rate[1,1] = -r_dec_unconf - r_conf
+        K_rate[2,0] = surv_rate*r_incub
+        K_rate[2,2] = -r_rec_unconf - r_conf
+        K_rate[3,1] = r_conf
+        K_rate[3,3] = -r_dec_conf
+        K_rate[4,2] = r_conf
+        K_rate[4,4] = -r_rec_conf
+        K_rate[5,3] = r_dec_conf
+        K_rate[6,4] = r_rec_conf
+
+        return K_rate
+
 class Model_A(Model):
     """
     Model 1 without the dec/infectious data
@@ -378,6 +454,13 @@ if __name__ == "__main__":
         samples_fname = "pyro_samples_model2%s.pkl"%suffix
         filters_dict = {
             "low_infection_rate": lambda s: s["inf_rate"] < 0.5,
+            "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
+            "r0_24": lambda s: model.r0(s) - 2 < 2,
+        }
+    elif args.model == "model3":
+        model = Model2(day_offset=day_offset)
+        samples_fname = "pyro_samples_model3%s.pkl"%suffix
+        filters_dict = {
             "med_survive_rate": lambda s: s["surv_rate"] > 0.7,
             "r0_24": lambda s: model.r0(s) - 2 < 2,
         }
