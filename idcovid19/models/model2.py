@@ -30,19 +30,20 @@ class Model2(BaseModel):
     def filters(self):
         return {
             "r0_4": lambda p: self.display_fcn["R0"](p) < 4,
-            "dec_period": lambda p: (1./p["r_dec"]*np.log(2) < 13) * (1./p["r_dec"]*np.log(2) > 9),
+            "dec_period": lambda p: (np.log(2)/p["r_dec"] < 13) * (np.log(2)/p["r_dec"] > 9),
+            "high_surv_rate": lambda p: p["surv_rate"] > 0.9,#(np.log(2)/p["r_dec"] < 13) * (np.log(2)/p["r_dec"] > 9),
         }
 
     @property
     @memoize
     def display_fcn(self):
         return {
-            "Incubation period": lambda p: 1./p["r_incub"],
-            "Infection rate": lambda p: p["inf_rate"],
+            # "Incubation period": lambda p: 1./p["r_incub"],
+            # "Infection rate": lambda p: p["inf_rate"],
             "Survival rate": lambda p: p["surv_rate"],
-            "Isolation period": lambda p: 1./p["r_iso"],
-            "Deceased period": lambda p: 1./p["r_dec"],
-            "Recovery period": lambda p: 1./p["r_rec"],
+            # "Isolation period": lambda p: 1./p["r_iso"],
+            "Deceased period": lambda p: np.log(2)/p["r_dec"],
+            "Recovery period": lambda p: np.log(2)/p["r_rec"],
             "R0": lambda p: p["inf_rate"] / p["r_iso"],
         }
 
