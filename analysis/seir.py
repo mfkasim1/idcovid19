@@ -15,22 +15,27 @@ for delay in delays:
         frac = 1.0
     daynow = 66 # 29/03/2020
 
-    pop = 263614931.0
+    pop = 267.0e6
     y0 = (pop, 1.0, 0.0, 0.0)
     R0 = 3.80
     R1 = 0.67 * (frac) + (1-frac) * R0
-    tinterv = daynow + delay
-    print(tinterv)
     Tinc = 5.2
     Tinf = 6.3
     cfr = 0.82/100
 
+    t, yt = simulate(daynow, delay, Tinc, K, R0, R1)
+    ndeaths = getdeaths(t, yt, cfr)
+    # durations.append(np.max(t[1:][ddeath>20]))
+    deaths.append(ndeaths)
+
+
+def simulate(daynow, delay, Tinc, K, R0, R1):
+    tinterv = daynow + delay
+    Tinf = (R0 - 1 - K*Tinc) / K / (1 + K*Tinc)
     b = Tinc + Tinf
     a = Tinc * Tinf
     c = 1-R0
     d = (-b + np.sqrt(b*b-4*a*c))/(2*a)
-    print("Exponential factor: %.3e" % d)
-    print("Doubling day: %.3e" % (np.log(2)/d))
 
     def func(y, t):
         # y: (S, E, I, R)
@@ -44,11 +49,12 @@ for delay in delays:
 
     t = np.arange(20000)*0.1
     yt = odeint(func, y0, t)
+    return t, yt # (4, nt)
 
+def getdeaths(t, yt, cfr):
     ddeath = (yt[1:,-1] - yt[:-1,-1]) * cfr / (t[1] - t[0])
+    return ddeath
 
-    durations.append(np.max(t[1:][ddeath>20]))
-    deaths.append(yt[-1,3]*cfr)
 
 if use_delay:
     # plt.plot(delays, deaths, '-')
